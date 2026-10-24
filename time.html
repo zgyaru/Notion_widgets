@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      padding: 6px;
+    }
+    #lc {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    #lc .card {
+      width: 100%;
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #fdf0f3;
+      color: #5a3a44;
+    }
+    #lc .card.him {
+      background: #eef3fb;
+      color: #34465e;
+    }
+    #lc .who {
+      font-size: 13px;
+      opacity: 0.85;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      min-height: 30px;
+    }
+    #lc .who > span { white-space: nowrap; flex-shrink: 0; }
+    #lc .t {
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin: 6px 0 2px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+    #lc .d {
+      font-size: 12px;
+      opacity: 0.75;
+    }
+    #lc .mid {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #888;
+      font-weight: 500;
+      padding: 2px 0;
+      white-space: nowrap;
+    }
+    #lc select {
+      font-size: 13px;
+      border: none;
+      background: rgba(255,255,255,0.85);
+      border-radius: 8px;
+      padding: 4px 8px;
+      color: inherit;
+      outline: none;
+      min-width: 0;
+      flex: 0 1 auto;
+      text-overflow: ellipsis;
+    }
+    
+    /* 平板/桌面端恢复左右并排排版 */
+    @media (min-width: 560px) {
+      #lc {
+        flex-direction: row;
+        align-items: stretch;
+        max-width: 720px;
+      }
+      #lc .card {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="lc">
+  <div class="card">
+    <div class="who"><span>🇬🇧 我在剑桥</span><span id="me-i"></span></div>
+    <div class="t" id="me-t">--:--</div>
+    <div class="d" id="me-d"></div>
+  </div>
+
+  <div class="mid" id="diff"></div>
+
+  <div class="card him">
+    <div class="who">
+      <select id="where">
+        <option value="Asia/Singapore">🇸🇬 他在新加坡</option>
+        <option value="Asia/Shanghai">🇨🇳 他在中国</option>
+        <option value="Europe/Bucharest">🇷🇴 他在罗马尼亚</option>
+      </select>
+      <span id="him-i"></span>
+    </div>
+    <div class="t" id="him-t">--:--</div>
+    <div class="d" id="him-d"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+var sel=document.getElementById('where');
+try{var s=localStorage.getItem('lc-where');if(s)sel.value=s;}catch(e){}
+sel.onchange=function(){try{localStorage.setItem('lc-where',sel.value);}catch(e){}tick();};
+function parts(tz,now){
+  var f=new Intl.DateTimeFormat('zh-CN',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false});
+  var g=new Intl.DateTimeFormat('zh-CN',{timeZone:tz,month:'long',day:'numeric',weekday:'short'});
+  var h=parseInt(new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',hour12:false}).format(now),10)%24;
+  return {t:f.format(now),d:g.format(now),h:h};
+}
+function icon(h){if(h>=6&&h<12)return'🌤 早上';if(h>=12&&h<18)return'☀️ 下午';if(h>=18&&h<23)return'🌆 晚上';return'🌙 夜里';}
+function offset(tz,now){
+  var p=new Intl.DateTimeFormat('en-US',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(now);
+  var o={};p.forEach(function(x){o[x.type]=x.value;});
+  return (Date.UTC(+o.year,+o.month-1,+o.day,(+o.hour)%24,+o.minute)-Math.floor(now.getTime()/60000)*60000)/3600000;
+}
+function tick(){
+  var now=new Date(),tz=sel.value;
+  var a=parts('Europe/London',now),b=parts(tz,now);
+  document.getElementById('me-t').textContent=a.t;document.getElementById('me-d').textContent=a.d;document.getElementById('me-i').textContent=icon(a.h);
+  document.getElementById('him-t').textContent=b.t;document.getElementById('him-d').textContent=b.d;document.getElementById('him-i').textContent=icon(b.h);
+  var df=Math.round(offset(tz,now)-offset('Europe/London',now));
+  var isMobile = window.innerWidth < 560;
+  document.getElementById('diff').textContent=df===0?'同一时间':(df>0?'他快 '+df+' 小时 '+(isMobile?'↓':'→'):'他慢 '+Math.abs(df)+' 小时 '+(isMobile?'↑':'←'));
+}
+tick();setInterval(tick,15000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)tick();});
+window.addEventListener('resize',tick);
+})();
+</script>
+
+</body>
+</html>
